@@ -17,7 +17,8 @@ from utils.torch_utils import select_device, load_classifier, time_synchronized,
 
 #For SORT tracking
 import skimage
-from sort import *
+from sort import Sort
+import numpy as np
 
 #............................... Tracker Functions ............................
 """ Random created palette"""
@@ -67,9 +68,9 @@ def detect(save_img=False):
 
     #.... Initialize SORT .... 
     #......................... 
-    sort_max_age = 5 
-    sort_min_hits = 2
-    sort_iou_thresh = 0.2
+    sort_max_age = 10
+    sort_min_hits = 5
+    sort_iou_thresh = 0.07
     sort_tracker = Sort(max_age=sort_max_age,
                        min_hits=sort_min_hits,
                        iou_threshold=sort_iou_thresh) 
@@ -130,7 +131,14 @@ def detect(save_img=False):
         rand_color = (r, g, b)
         rand_color_list.append(rand_color)
     #.........................
-   
+
+    # skip first frames
+    c = 0
+    for _ in datase:
+        if c >= 3:
+            break
+        c += 1
+
     for path, img, im0s, vid_cap in dataset:
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
@@ -189,9 +197,27 @@ def detect(save_img=False):
                                 np.array([x1, y1, x2, y2, conf, detclass])))
                 
                 # Run SORT
+                # print('Frame:', frame)
+                # print("\nYolo Detections:")
+                # print(dets_to_sort)
+                # if frame == 1:
+                #     prev_det = dets_to_sort
+
+                # print('Diff of yolo Detections:')
+                # print(dets_to_sort-prev_det)
+                # print('Distances:')
+                # print(np.linalg.norm(dets_to_sort[:,:4]-prev_det[:,:4], axis=1))
+                # prev_det = dets_to_sort
+
                 tracked_dets = sort_tracker.update(dets_to_sort)
                 tracks =sort_tracker.getTrackers()
-                
+
+                # print('Tracked dets:')
+                # print(tracked_dets)
+
+                # print('#Tracks:')
+                # print(len(tracks))
+
                 #loop over tracks
                 for track in tracks:
                     # color = compute_color_for_labels(id)
@@ -213,11 +239,16 @@ def detect(save_img=False):
                 
             # Print time (inference + NMS)
             print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}ms) NMS')
+            # print(80*'-')
 
             # Stream results
             if view_img:
+                cv2.namedWindow(str(p), cv2.WINDOW_NORMAL)
                 cv2.imshow(str(p), im0)
-                cv2.waitKey(1)  # 1 millisecond
+                if cv2.waitKey(1) == ord('q'):  # q to quit
+                    cv2.destroyAllWindows()
+                    raise StopIteration
+                    # break
 
             # Save results (image with detections)
             if save_img:
