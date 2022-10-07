@@ -1,0 +1,34 @@
+# Compiled Python files
+__pycache__/
+*.pyc
+
+# My test files
+test*.py
+
+# Deploy, bin folders
+deploy/
+bin/
+
+# IDE
+.vscode/
+
+
+# My data folders:
+
+# Ignore whole folder
+data/
+runs/
+weights/
+
+# Ignore only certain files inside folder
+data/*.csv
+# if you only have that kind o files inside but whant to still track the empty directory add some extrafile inside. Like .empy
+
+# Weights
+*.pt
+
+# Compact code, bins
+*.tar
+
+# Python egg metadata, regenerated from source files by setuptools.
+*.egg-info
